@@ -26,7 +26,8 @@ set(COMPONENT_PUBLIC_CCFLAGS
 )
 
 set(COMPONENT_CCFLAGS
--DLV_CONF_INCLUDE_SIMPLE
+    -DLV_CONF_INCLUDE_SIMPLE
+    -U__linux__
     -Wno-jump-misses-init
     -Wno-error=unused-parameter
 )

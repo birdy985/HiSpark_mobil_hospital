@@ -15,7 +15,22 @@ config OPEN_SOURCE_LVGL
         build time and firmware size.
 
 if OPEN_SOURCE_LVGL
+
+# Override LVGL Kconfig defaults for ws63 platform
+config LV_USE_OS
+    default LV_OS_CMSIS_RTOS2
+
+config LV_MEM_SIZE
+    default 128
+
+config LV_DRAW_SW_COMPLEX
+    default y
+
+config LV_DRAW_THREAD_PRIO
+    default 3
+
 osource "open_source/lvgl/Kconfig"
+
 endif
 
 endmenu
