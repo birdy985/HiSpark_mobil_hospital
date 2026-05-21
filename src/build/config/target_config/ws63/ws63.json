@@ -108,6 +108,12 @@
 			"cpu 0 entering scheduler"
 		]
 	},
+	"flash": {
+		"backend": "burntool",
+		"chiptype": "WS63",
+		"signalbaud": 921600,
+		"expected_sections": 7
+	},
 	"need_sdk": true,
 	"need_project_path": true,
 	"chip_config": false,
