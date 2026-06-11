@@ -14,10 +14,10 @@
 #include "driver/pwm.h"
 
 // Static channel allocation bitmap
-static uint8_t s_channelAllocated = 0;
+static uint8_t g_channel_allocated = 0;
 
 // PWM module initialization flag
-static bool g_pwmInitialized = false;
+static bool g_pwm_initialized = false;
 
 // Constructor
 Servo::Servo()
@@ -49,21 +49,21 @@ bool Servo::attach(uint8_t pin)
 
     // Find an available channel (0-3 for 4 servos)
     for (uint8_t ch = 0; ch < MAX_SERVOS; ch++) {
-        if (!(s_channelAllocated & (1 << ch))) {
+        if (!(g_channel_allocated & (1 << ch))) {
             // Channel is available
             m_channel = ch;
             m_pin = pin;
 
             // Mark channel as allocated
-            s_channelAllocated |= (1 << ch);
+            g_channel_allocated |= (1 << ch);
 
             // Initialize PWM module (only needs to be called once)
-            if (!g_pwmInitialized) {
+            if (!g_pwm_initialized) {
                 errcode_t init_ret = uapi_pwm_init();
                 if (init_ret == ERRCODE_SUCC) {
-                    g_pwmInitialized = true;
+                    g_pwm_initialized = true;
                 }
-                // If init failed, g_pwmInitialized stays false and will retry on next attach
+                // If init failed, g_pwm_initialized stays false and will retry on next attach
             }
 
             // Configure PWM channel
@@ -87,7 +87,7 @@ bool Servo::attach(uint8_t pin)
             if (ret != ERRCODE_SUCC) {
                 // Either open failed (already closed) or start failed (now open), close it
                 uapi_pwm_close(m_channel);
-                s_channelAllocated &= ~(1 << m_channel);
+                g_channel_allocated &= ~(1 << m_channel);
                 m_channel = INVALID_CHANNEL;
                 m_attached = false;
                 m_pin = 0;
@@ -154,7 +154,7 @@ void Servo::detach()
         uapi_pwm_close(m_channel);
 
         // Mark channel as free
-        s_channelAllocated &= ~(1 << m_channel);
+        g_channel_allocated &= ~(1 << m_channel);
     }
 
     m_channel = INVALID_CHANNEL;
@@ -168,8 +168,8 @@ void Servo::detach()
 void Servo::end()
 {
     uapi_pwm_deinit();
-    g_pwmInitialized = false;
-    s_channelAllocated = 0;
+    g_pwm_initialized = false;
+    g_channel_allocated = 0;
 }
 
 // Write angle (SERVO_MIN_ANGLE-SERVO_MAX_ANGLE degrees)
@@ -264,7 +264,7 @@ void Servo::updateDutyRatio(uint16_t pulseWidth)
         if (ret != ERRCODE_SUCC) {
             // Either open failed (already closed) or start failed (now open), close it
             uapi_pwm_close(m_channel);
-            s_channelAllocated &= ~(1 << m_channel);
+            g_channel_allocated &= ~(1 << m_channel);
             m_channel = INVALID_CHANNEL;
             m_attached = false;
             m_pin = 0;
