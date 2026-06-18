@@ -29,6 +29,13 @@ if(DEFINED CONFIG_ENABLE_NFC_SAMPLE)
     add_subdirectory_if_exist(nfc)
 endif()
 
+#用户区开始
+if(DEFINED CONFIG_ENABLE_MYDEMO_SAMPLE)
+    add_subdirectory_if_exist(mydemo)
+endif()
+
+#用户区结束
+
 add_subdirectory_if_exist(custom)
 
 set(PRIVATE_HEADER

@@ -1,0 +1,74 @@
+# src/application/samples/mydemo/Kconfig
+
+config SAMPLE_SUPPORT_HELLOWORLD
+    bool
+    prompt "Support HELLOWORLD Sample."
+    default n
+    depends on ENABLE_MYDEMO_SAMPLE
+    help
+        This option means support HELLOWORLD Sample.
+
+config SAMPLE_SUPPORT_THREAD
+    bool
+    prompt "Support THREAD Sample."
+    default n
+    depends on ENABLE_MYDEMO_SAMPLE
+    help
+        This option means support THREAD Sample.
+
+config SAMPLE_SUPPORT_MUTEX
+    bool
+    prompt "Support MUTEX Sample."
+    default n
+    depends on ENABLE_MYDEMO_SAMPLE
+    help
+        This option means support MUTEX Sample.
+
+config SAMPLE_SUPPORT_QUEUE
+    bool
+    prompt "Support QUEUE Sample."
+    default n
+    depends on ENABLE_MYDEMO_SAMPLE
+    help
+        This option means support QUEUE Sample.   
+
+config SAMPLE_SUPPORT_EVENT
+    bool
+    prompt "Support EVENT Sample."
+    default n
+    depends on ENABLE_MYDEMO_SAMPLE
+    help
+        This option means support EVENT Sample.   
+
+config SAMPLE_SUPPORT_TIMER
+    bool
+    prompt "Support TIMER Sample."
+    default n
+    depends on ENABLE_MYDEMO_SAMPLE
+    help
+        This option means support TIMER Sample.   
+
+config SAMPLE_SUPPORT_GPIO
+    bool
+    prompt "Support GPIO Sample."
+    default n
+    depends on ENABLE_MYDEMO_SAMPLE
+    help
+        This option means support GPIO Sample.
+
+config SAMPLE_SUPPORT_ADC
+    bool
+    prompt "Support ADC Sample."
+    default n
+    depends on ENABLE_MYDEMO_SAMPLE
+    help
+        This option means support ADC Sample.           
+
+config SAMPLE_SUPPORT_AD8232_ADC
+    bool
+    prompt "Support AD8232 ECG ADC Sample."
+    default y
+    depends on ENABLE_MYDEMO_SAMPLE
+    help
+        This option means support AD8232 ECG ADC Sample.
+

@@ -74,3 +74,20 @@ config ENABLE_NFC_SAMPLE
 if ENABLE_NFC_SAMPLE
 osource "application/samples/nfc/Kconfig"
 endif
+
+#用户区开始
+
+config ENABLE_MYDEMO_SAMPLE
+    bool
+    prompt "Enable the Sample of mydemo."
+    default n
+    depends on SAMPLE_ENABLE
+    help
+        This option means enable the sample of mydemo.
+
+if ENABLE_MYDEMO_SAMPLE
+osource "application/samples/mydemo/Kconfig"
+endif
+
+
+#用户区结束
