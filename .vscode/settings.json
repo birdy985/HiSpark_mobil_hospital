@@ -1,0 +1,33 @@
+{
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/fbb_ws63/src/output/ws63/acore/ws63-liteos-app/compile_commands.json",
+  "C_Cpp.default.compilerPath": "${workspaceFolder}/fbb_ws63/src/tools/bin/compiler/riscv/cc_riscv32_musl_105/cc_riscv32_musl_fp_win/bin/riscv32-linux-musl-gcc.exe",
+  "C_Cpp.default.configurationProvider": "",
+  "C_Cpp.default.includePath": [
+    "${workspaceFolder}/fbb_ws63/src/open_source/lwip/lwip_v2.1.3/src/include",
+    "${workspaceFolder}/fbb_ws63/src/open_source/lwip/lwip_adapter/liteos_207/src/include",
+    "${workspaceFolder}/fbb_ws63/src/include",
+    "${workspaceFolder}/fbb_ws63/src/include/middleware/services/wifi",
+    "${workspaceFolder}/fbb_ws63/src/middleware/utils/app_init",
+    "${workspaceFolder}/fbb_ws63/src/kernel/osal/include",
+    "${workspaceFolder}/fbb_ws63/src/kernel/liteos/liteos_v208.5.0/Huawei_LiteOS/open_source/CMSIS/CMSIS/RTOS2/Include"
+  ],
+  "C_Cpp.default.defines": [
+    "LWIP_CONFIG_FILE=\"lwip/lwipopts_default.h\"",
+    "USE_CMSIS_OS",
+    "USE_LITEOS",
+    "__LITEOS__",
+    "CHIP_WS63=1"
+  ],
+  "C_Cpp.default.forcedInclude": [
+    "${workspaceFolder}/fbb_ws63/src/output/ws63/acore/ws63-liteos-app/mconfig.h"
+  ],
+  "C_Cpp.errorSquiggles": "enabled",
+  "files.associations": {
+    "Kconfig": "kconfig",
+    "**/Kconfig": "kconfig"
+  },
+  "python.defaultInterpreterPath": "D:\\HiSpark\\tools\\python\\python.exe",
+  "terminal.integrated.env.windows": {
+    "PATH": "D:\\HiSpark\\tools\\python;D:\\HiSpark\\tools\\python\\Scripts;D:\\HiSpark\\tools\\python\\Lib\\site-packages\\cmake\\data\\bin;D:\\HiSpark\\tools\\Windows\\ninja;D:\\HiSpark\\tools\\cfbb\\thirdparty\\ccache;${env:PATH}"
+  }
+}
