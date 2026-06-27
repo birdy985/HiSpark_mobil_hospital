@@ -3,6 +3,7 @@ set(SOURCES_LIST
     ${CMAKE_CURRENT_SOURCE_DIR}/sle_uart_server/sle_uart_server_adv.c
     ${CMAKE_CURRENT_SOURCE_DIR}/sle_uart_server/sle_uart_server.c
     ${CMAKE_CURRENT_SOURCE_DIR}/ecg_sle_packet.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/tjc_display.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../9_ad8232_adc/ecg_processor.c
     ${CMAKE_CURRENT_SOURCE_DIR}/main.c
 )

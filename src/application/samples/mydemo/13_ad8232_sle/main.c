@@ -18,6 +18,7 @@
 
 #if defined(CONFIG_SAMPLE_SUPPORT_AD8232_SLE_SERVER)
 #include "sle_uart_server/sle_uart_server.h"
+#include "tjc_display.h"
 #elif defined(CONFIG_SAMPLE_SUPPORT_AD8232_SLE_CLIENT)
 #include "sle_uart_client/sle_uart_client.h"
 #endif
@@ -29,6 +30,8 @@
 #define ECG_SLE_QUEUE_LEN                 16
 #define ECG_SLE_QUEUE_DELAY               0xFFFFFFFF
 #define ECG_SLE_ADV_HANDLE_DEFAULT        1
+#define ECG_SLE_DISPLAY_UPDATE_MS         20
+#define ECG_SLE_BPM_UPDATE_MS             500
 #define ECG_SLE_SERVER_LOG                "[ecg sle server]"
 #define ECG_SLE_CLIENT_LOG                "[ecg sle client]"
 
@@ -42,6 +45,9 @@ static unsigned long g_ecg_sle_msgqueue_id;
 static uint8_t g_ecg_sle_header_printed;
 static uint8_t g_ecg_sle_has_seq;
 static uint32_t g_ecg_sle_expected_seq;
+static uint16_t g_ecg_sle_last_bpm = 0xFFFF;
+static uint32_t g_ecg_sle_last_display_ms;
+static uint32_t g_ecg_sle_last_bpm_ms;
 
 static void ecg_sle_server_print_header(void)
 {
@@ -133,6 +139,17 @@ static void ecg_sle_server_handle_msg(const ecg_sle_rx_msg_t *msg)
     g_ecg_sle_has_seq = 1;
     g_ecg_sle_expected_seq = sample.seq + 1;
 
+    uint32_t now_ms = (uint32_t)uapi_tcxo_get_ms();
+    if ((now_ms - g_ecg_sle_last_display_ms) >= ECG_SLE_DISPLAY_UPDATE_MS) {
+        tjc_display_send_sample(&sample);
+        g_ecg_sle_last_display_ms = now_ms;
+    }
+    if ((sample.bpm != g_ecg_sle_last_bpm) || ((now_ms - g_ecg_sle_last_bpm_ms) >= ECG_SLE_BPM_UPDATE_MS)) {
+        tjc_display_send_bpm(sample.bpm);
+        g_ecg_sle_last_bpm = sample.bpm;
+        g_ecg_sle_last_bpm_ms = now_ms;
+    }
+
     ecg_sle_server_print_header();
     osal_printk("ECG_SLE,%lu,%lu,%u,%d,%d,%d,%d,%u,%u,%u,%u\r\n",
         (unsigned long)sample.seq,
@@ -159,6 +176,13 @@ static void *ecg_sle_server_task(const char *arg)
         OSAL_SUCCESS) {
         osal_printk("%s create rx queue failed\r\n", ECG_SLE_SERVER_LOG);
         return NULL;
+    }
+
+    ret = tjc_display_init();
+    if (ret != ERRCODE_SUCC) {
+        osal_printk("%s TJC init failed ret=0x%x\r\n", ECG_SLE_SERVER_LOG, ret);
+    } else {
+        tjc_display_clear_wave();
     }
 
     sle_uart_server_register_msg(ecg_sle_server_restart_msg);
