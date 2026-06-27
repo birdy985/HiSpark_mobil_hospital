@@ -6,7 +6,8 @@
 #define ECG_BASELINE_IIR_SHIFT         8
 #define ECG_FILTER_IIR_SHIFT           2
 #define ECG_DISPLAY_IIR_SHIFT          1
-#define ECG_DISPLAY_STEP_LIMIT_MV      80
+#define ECG_DISPLAY_STEP_LIMIT_MV      60
+#define ECG_DISPLAY_MAX_MV             180
 #define ECG_INITIAL_THRESHOLD_MV       35
 #define ECG_MIN_THRESHOLD_MV           18
 #define ECG_MIN_R_PEAK_MV              25
@@ -20,6 +21,7 @@
 #define ECG_FLATLINE_RANGE_MV          8
 #define ECG_NOISY_JUMP_MV              120
 #define ECG_NOISY_COUNT_LIMIT          20
+#define ECG_INPUT_HISTORY_LEN          3
 
 typedef struct {
     uint8_t initialized;
@@ -43,6 +45,9 @@ typedef struct {
     uint16_t window_count;
     uint16_t noisy_count;
     uint16_t previous_voltage_mv;
+    uint16_t input_history[ECG_INPUT_HISTORY_LEN];
+    uint8_t input_history_count;
+    uint8_t input_history_index;
 } ecg_processor_state_t;
 
 static ecg_processor_state_t g_ecg_state;
@@ -71,6 +76,17 @@ static uint16_t ecg_clamp_u16(uint32_t value)
     return (uint16_t)value;
 }
 
+static int32_t ecg_clamp_i32(int32_t value, int32_t min_value, int32_t max_value)
+{
+    if (value > max_value) {
+        return max_value;
+    }
+    if (value < min_value) {
+        return min_value;
+    }
+    return value;
+}
+
 static int32_t ecg_limit_step_i32(int32_t current, int32_t target, int32_t step_limit)
 {
     int32_t delta = target - current;
@@ -82,6 +98,35 @@ static int32_t ecg_limit_step_i32(int32_t current, int32_t target, int32_t step_
         return current - step_limit;
     }
     return target;
+}
+
+static uint16_t ecg_median3_u16(uint16_t a, uint16_t b, uint16_t c)
+{
+    if (((a >= b) && (a <= c)) || ((a >= c) && (a <= b))) {
+        return a;
+    }
+    if (((b >= a) && (b <= c)) || ((b >= c) && (b <= a))) {
+        return b;
+    }
+    return c;
+}
+
+static uint16_t ecg_filter_input_voltage(uint16_t voltage_mv)
+{
+    uint16_t filtered_mv = voltage_mv;
+
+    g_ecg_state.input_history[g_ecg_state.input_history_index] = voltage_mv;
+    g_ecg_state.input_history_index = (uint8_t)((g_ecg_state.input_history_index + 1) % ECG_INPUT_HISTORY_LEN);
+    if (g_ecg_state.input_history_count < ECG_INPUT_HISTORY_LEN) {
+        g_ecg_state.input_history_count++;
+    }
+
+    if (g_ecg_state.input_history_count >= ECG_INPUT_HISTORY_LEN) {
+        filtered_mv = ecg_median3_u16(g_ecg_state.input_history[0],
+            g_ecg_state.input_history[1], g_ecg_state.input_history[2]);
+    }
+
+    return filtered_mv;
 }
 
 static uint16_t ecg_update_threshold(uint16_t peak_level_mv, uint16_t noise_level_mv)
@@ -185,10 +230,16 @@ void ecg_processor_init(void)
     g_ecg_state.window_count = 0;
     g_ecg_state.noisy_count = 0;
     g_ecg_state.previous_voltage_mv = 0;
+    g_ecg_state.input_history[0] = 0;
+    g_ecg_state.input_history[1] = 0;
+    g_ecg_state.input_history[2] = 0;
+    g_ecg_state.input_history_count = 0;
+    g_ecg_state.input_history_index = 0;
 }
 
 void ecg_processor_process(const ecg_input_sample_t *input, ecg_monitor_sample_t *output)
 {
+    uint16_t filtered_input_mv;
     int32_t baseline_mv;
     int32_t ecg_mv;
     int32_t display_target_mv;
@@ -205,23 +256,26 @@ void ecg_processor_process(const ecg_input_sample_t *input, ecg_monitor_sample_t
         return;
     }
 
+    filtered_input_mv = ecg_filter_input_voltage(input->voltage_mv);
+
     if (g_ecg_state.initialized == 0) {
         g_ecg_state.initialized = 1;
         g_ecg_state.first_timestamp_ms = input->timestamp_ms;
-        g_ecg_state.baseline_q8_mv = ((int32_t)input->voltage_mv) << ECG_BASELINE_IIR_SHIFT;
+        g_ecg_state.baseline_q8_mv = ((int32_t)filtered_input_mv) << ECG_BASELINE_IIR_SHIFT;
         g_ecg_state.filtered_mv = 0;
         g_ecg_state.display_mv = 0;
         g_ecg_state.previous_filtered_mv = 0;
-        g_ecg_state.previous_voltage_mv = input->voltage_mv;
+        g_ecg_state.previous_voltage_mv = filtered_input_mv;
     }
 
     g_ecg_state.baseline_q8_mv +=
-        ((((int32_t)input->voltage_mv) << ECG_BASELINE_IIR_SHIFT) - g_ecg_state.baseline_q8_mv) >>
+        ((((int32_t)filtered_input_mv) << ECG_BASELINE_IIR_SHIFT) - g_ecg_state.baseline_q8_mv) >>
         ECG_BASELINE_IIR_SHIFT;
     baseline_mv = g_ecg_state.baseline_q8_mv >> ECG_BASELINE_IIR_SHIFT;
-    ecg_mv = (int32_t)input->voltage_mv - baseline_mv;
+    ecg_mv = (int32_t)filtered_input_mv - baseline_mv;
     g_ecg_state.filtered_mv += (ecg_mv - g_ecg_state.filtered_mv) >> ECG_FILTER_IIR_SHIFT;
-    display_target_mv = ecg_limit_step_i32(g_ecg_state.display_mv, ecg_mv, ECG_DISPLAY_STEP_LIMIT_MV);
+    display_target_mv = ecg_clamp_i32(g_ecg_state.filtered_mv, -ECG_DISPLAY_MAX_MV, ECG_DISPLAY_MAX_MV);
+    display_target_mv = ecg_limit_step_i32(g_ecg_state.display_mv, display_target_mv, ECG_DISPLAY_STEP_LIMIT_MV);
     g_ecg_state.display_mv += (display_target_mv - g_ecg_state.display_mv) >> ECG_DISPLAY_IIR_SHIFT;
     signal_level_mv = ecg_abs_i16(ecg_clamp_i16(g_ecg_state.filtered_mv));
 
@@ -280,9 +334,9 @@ void ecg_processor_process(const ecg_input_sample_t *input, ecg_monitor_sample_t
     }
 
     g_ecg_state.threshold_mv = ecg_update_threshold(g_ecg_state.peak_level_mv, g_ecg_state.noise_level_mv);
-    ecg_update_window(input->voltage_mv);
+    ecg_update_window(filtered_input_mv);
     g_ecg_state.previous_filtered_mv = ecg_clamp_i16(g_ecg_state.filtered_mv);
-    quality = ecg_assess_quality(input->voltage_mv, input->timestamp_ms);
+    quality = ecg_assess_quality(filtered_input_mv, input->timestamp_ms);
 
     output->seq = input->seq;
     output->timestamp_ms = input->timestamp_ms;

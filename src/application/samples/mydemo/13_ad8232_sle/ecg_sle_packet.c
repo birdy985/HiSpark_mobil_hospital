@@ -42,6 +42,20 @@ static uint32_t ecg_sle_get_u32(const uint8_t *buffer)
         ((uint32_t)buffer[3] << 24);
 }
 
+static uint16_t ecg_sle_checksum(const uint8_t *buffer, uint16_t len)
+{
+    uint16_t checksum = 0;
+    uint16_t i;
+
+    if (buffer == NULL) {
+        return 0;
+    }
+
+    for (i = 0; i < len; i++) {
+        checksum = (uint16_t)(checksum + buffer[i]);
+    }
+    return checksum;
+}
 
 errcode_t ecg_sle_encode_sample(const ecg_monitor_sample_t *sample, uint8_t *buffer, uint16_t buffer_len)
 {

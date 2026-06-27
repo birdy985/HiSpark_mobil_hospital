@@ -252,6 +252,7 @@ static void *ecg_sle_client_task(const char *arg)
             };
             ecg_monitor_sample_t output = {0};
             ecg_processor_process(&input, &output);
+            printf("%d\r\n", (int)output.display_mv);
             ret = ecg_sle_client_send_sample(&output);
             if (ret == ERRCODE_SUCC) {
                 sent_count++;
@@ -303,12 +304,4 @@ static void ecg_sle_entry(void)
 #endif
 }
 
-app_run(ecg_sle_entry); 
-
-
-
-
-
-
-
-
+app_run(ecg_sle_entry);
