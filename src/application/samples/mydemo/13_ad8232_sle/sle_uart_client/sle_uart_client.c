@@ -6,12 +6,16 @@
  * History: \n
  * 2023-04-03, Create file. \n
  */
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "common_def.h"
 #include "soc_osal.h"
 #include "securec.h"
 #include "product.h"
 #include "bts_le_gap.h"
 
+#include "sle_errcode.h"
 #include "sle_device_discovery.h"
 #include "sle_connection_manager.h"
 #include "sle_uart_client.h"
@@ -39,6 +43,9 @@ static ssapc_callbacks_t g_sle_uart_ssapc_cbk = { 0 };
 static sle_addr_t g_sle_uart_remote_addr = { 0 };
 ssapc_write_param_t g_sle_uart_send_param = { 0 };
 uint16_t g_sle_uart_conn_id = 0;
+static volatile bool g_sle_uart_write_pending = false;
+static volatile uint32_t g_sle_uart_write_cfm_count = 0;
+static volatile uint32_t g_sle_uart_write_cfm_fail_count = 0;
 
 uint16_t get_g_sle_uart_conn_id(void)
 {
@@ -50,6 +57,30 @@ ssapc_write_param_t *get_g_sle_uart_send_param(void)
     return &g_sle_uart_send_param;
 }
 
+bool sle_uart_client_can_send(void)
+{
+    return !g_sle_uart_write_pending;
+}
+
+void sle_uart_client_mark_write_pending(void)
+{
+    g_sle_uart_write_pending = true;
+}
+
+void sle_uart_client_clear_write_pending(void)
+{
+    g_sle_uart_write_pending = false;
+}
+
+uint32_t sle_uart_client_get_write_cfm_count(void)
+{
+    return g_sle_uart_write_cfm_count;
+}
+
+uint32_t sle_uart_client_get_write_cfm_fail_count(void)
+{
+    return g_sle_uart_write_cfm_fail_count;
+}
 void sle_uart_start_scan(void)
 {
     sle_seek_param_t param = { 0 };
@@ -142,6 +173,7 @@ static void sle_uart_client_sample_connect_state_changed_cbk(uint16_t conn_id, c
     osal_printk("%s conn state changed disc_reason:0x%x\r\n", SLE_UART_CLIENT_LOG, disc_reason);
     g_sle_uart_conn_id = conn_id;
     if (conn_state == SLE_ACB_STATE_CONNECTED) {
+        g_sle_uart_write_pending = false;
         osal_printk("%s SLE_ACB_STATE_CONNECTED\r\n", SLE_UART_CLIENT_LOG);
         if (pair_state == SLE_PAIR_NONE) {
             sle_pair_remote_device(&g_sle_uart_remote_addr);
@@ -156,6 +188,7 @@ static void sle_uart_client_sample_connect_state_changed_cbk(uint16_t conn_id, c
     } else if (conn_state == SLE_ACB_STATE_NONE) {
         osal_printk("%s SLE_ACB_STATE_NONE\r\n", SLE_UART_CLIENT_LOG);
     } else if (conn_state == SLE_ACB_STATE_DISCONNECTED) {
+        g_sle_uart_write_pending = false;
         osal_printk("%s SLE_ACB_STATE_DISCONNECTED\r\n", SLE_UART_CLIENT_LOG);
         sle_remove_paired_remote_device(&g_sle_uart_remote_addr);
         sle_uart_start_scan();
@@ -233,8 +266,15 @@ static void sle_uart_client_sample_find_structure_cmp_cbk(uint8_t client_id, uin
 static void sle_uart_client_sample_write_cfm_cb(uint8_t client_id, uint16_t conn_id,
                                                 ssapc_write_result_t *write_result, errcode_t status)
 {
-    osal_printk("%s sle_uart_client_sample_write_cfm_cb, conn_id:%d client id:%d status:%d handle:%02x type:%02x\r\n",
-                SLE_UART_CLIENT_LOG, conn_id, client_id, status, write_result->handle, write_result->type);
+    unused(client_id);
+    unused(conn_id);
+
+    g_sle_uart_write_pending = false;
+    g_sle_uart_write_cfm_count++;
+    if ((status != ERRCODE_SLE_SUCCESS) || (write_result == NULL)) {
+        g_sle_uart_write_cfm_fail_count++;
+        osal_printk("%s write cfm failed status:%d\r\n", SLE_UART_CLIENT_LOG, status);
+    }
 }
 
 static void sle_uart_client_sample_ssapc_cbk_register(ssapc_notification_callback notification_cb,

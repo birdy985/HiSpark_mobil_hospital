@@ -139,7 +139,14 @@ static void ecg_sle_server_handle_msg(const ecg_sle_rx_msg_t *msg)
     g_ecg_sle_has_seq = 1;
     g_ecg_sle_expected_seq = sample.seq + 1;
 
-    uint32_t now_ms = (uint32_t)uapi_tcxo_get_ms();
+    uint32_t rx_ms = (uint32_t)uapi_tcxo_get_ms();
+    osal_printk("ECG_SLE_RX,%lu,%lu,%lu,%lu\r\n",
+        (unsigned long)sample.seq,
+        (unsigned long)sample.timestamp_ms,
+        (unsigned long)rx_ms,
+        (unsigned long)(rx_ms - sample.timestamp_ms));
+
+    uint32_t now_ms = rx_ms;
     if ((now_ms - g_ecg_sle_last_display_ms) >= ECG_SLE_DISPLAY_UPDATE_MS) {
         tjc_display_send_sample(&sample);
         g_ecg_sle_last_display_ms = now_ms;
@@ -239,7 +246,12 @@ static errcode_t ecg_sle_client_send_sample(const ecg_monitor_sample_t *sample)
     }
     param->data_len = ECG_SLE_PACKET_LEN;
     param->data = g_ecg_sle_tx_buf;
-    return ssapc_write_req(0, conn_id, param);
+    sle_uart_client_mark_write_pending();
+    ret = ssapc_write_req(0, conn_id, param);
+    if (ret != ERRCODE_SUCC) {
+        sle_uart_client_clear_write_pending();
+    }
+    return ret;
 }
 
 static void *ecg_sle_client_task(const char *arg)
@@ -250,6 +262,7 @@ static void *ecg_sle_client_task(const char *arg)
     uint32_t sent_count = 0;
     uint32_t drop_count = 0;
     uint32_t fail_count = 0;
+    uint32_t backpressure_count = 0;
     uint32_t last_stats_ms;
 
     sle_uart_client_init(sle_uart_notification_cb, sle_uart_indication_cb);
@@ -276,14 +289,30 @@ static void *ecg_sle_client_task(const char *arg)
             };
             ecg_monitor_sample_t output = {0};
             ecg_processor_process(&input, &output);
-            printf("%d\r\n", (int)output.display_mv);
-            ret = ecg_sle_client_send_sample(&output);
-            if (ret == ERRCODE_SUCC) {
-                sent_count++;
-            } else if (get_g_sle_uart_send_param()->handle == 0) {
-                drop_count++;
+            // printf("%d\r\n", (int)output.display_mv);
+            osal_printk("ECG_SLE,%lu,%lu,%u,%d,%d,%d,%d,%u,%u,%u,%u\r\n",
+                (unsigned long)output.seq,
+                (unsigned long)output.timestamp_ms,
+                (unsigned int)output.voltage_mv,
+                (int)output.baseline_mv,
+                (int)output.ecg_mv,
+                (int)output.filtered_mv,
+                (int)output.display_mv,
+                (unsigned int)output.r_peak,
+                (unsigned int)output.rr_interval_ms,
+                (unsigned int)output.bpm,
+                (unsigned int)output.quality);
+            if (!sle_uart_client_can_send()) {
+                backpressure_count++;
             } else {
-                fail_count++;
+                ret = ecg_sle_client_send_sample(&output);
+                if (ret == ERRCODE_SUCC) {
+                    sent_count++;
+                } else if (get_g_sle_uart_send_param()->handle == 0) {
+                    drop_count++;
+                } else {
+                    fail_count++;
+                }
             }
         } else {
             fail_count++;
@@ -291,8 +320,11 @@ static void *ecg_sle_client_task(const char *arg)
 
         now_ms = (uint32_t)uapi_tcxo_get_ms();
         if ((now_ms - last_stats_ms) >= ECG_SLE_STATS_INTERVAL_MS) {
-            osal_printk("%s stats sent=%lu drop=%lu fail=%lu handle=0x%x\r\n", ECG_SLE_CLIENT_LOG,
-                (unsigned long)sent_count, (unsigned long)drop_count, (unsigned long)fail_count,
+            osal_printk("%s stats sent=%lu drop=%lu backpressure=%lu fail=%lu cfm=%lu cfm_fail=%lu handle=0x%x\r\n",
+                ECG_SLE_CLIENT_LOG,
+                (unsigned long)sent_count, (unsigned long)drop_count, (unsigned long)backpressure_count,
+                (unsigned long)fail_count, (unsigned long)sle_uart_client_get_write_cfm_count(),
+                (unsigned long)sle_uart_client_get_write_cfm_fail_count(),
                 (unsigned int)get_g_sle_uart_send_param()->handle);
             last_stats_ms = now_ms;
         }
