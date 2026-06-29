@@ -72,6 +72,14 @@ config SAMPLE_SUPPORT_AD8232_ADC
     help
         This option means support AD8232 ECG ADC Sample.
 
+config SAMPLE_SUPPORT_SPO2_SENSOR
+    bool
+    prompt "Support MAX30102 SpO2 Sensor Sample."
+    default n
+    depends on ENABLE_MYDEMO_SAMPLE
+    help
+        This option means support MAX30102 SpO2 raw PPG debug UART sample.
+
 config SAMPLE_SUPPORT_WIFI
     bool
     prompt "Support WIFI Sample."
