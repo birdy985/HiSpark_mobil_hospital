@@ -1,0 +1,3 @@
+[submodule "fbb_ws63"]
+	path = fbb_ws63
+	url = https://github.com/birdy985/fbb_ws63_mobil_hospital.git
