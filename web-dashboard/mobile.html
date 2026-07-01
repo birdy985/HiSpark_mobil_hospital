@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>生命体征 H5</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body data-view="mobile">
+  <main class="mobile-shell">
+    <header class="mobile-header">
+      <div class="mobile-title">
+        <h1>生命体征 H5</h1>
+        <p>bed01 · EMQX 实时数据</p>
+      </div>
+      <span id="statusPill" class="status-pill offline"><i class="status-dot"></i><span id="statusText">未连接</span></span>
+    </header>
+
+    <section class="mobile-content">
+      <article class="mobile-wave-card">
+        <div class="mobile-wave-top">
+          <h2>心电</h2>
+          <div><span id="ecgValue" class="mobile-ecg-number">--</span><span class="mobile-ecg-unit"> mV</span></div>
+        </div>
+        <canvas id="mobileWaveCanvas" aria-label="ECG waveform"></canvas>
+        <div class="mobile-meta">
+          <div><small>更新时间</small><b id="lastUpdateText">--</b></div>
+          <div><small>设备</small><b id="deviceIdText">--</b></div>
+        </div>
+      </article>
+
+      <article class="mobile-metric-card">
+        <div class="mobile-metric-row"><span>心率</span><strong><span id="heartRateValue">--</span> <span>bpm</span></strong></div>
+      </article>
+
+      <article class="mobile-metric-card">
+        <div class="mobile-metric-row"><span>血氧</span><strong><span id="spo2Value">--</span> <span>%</span></strong></div>
+      </article>
+
+      <article class="mobile-metric-card">
+        <div class="mobile-metric-row"><span>质量</span><strong id="qualityText">--</strong></div>
+      </article>
+
+      <article class="mobile-raw-card">
+        <h2>原始消息</h2>
+        <div class="mobile-meta">
+          <div><small>Topic</small><b id="topicText">--</b></div>
+          <div><small>计数</small><b id="messageCountText">0</b></div>
+        </div>
+        <pre id="rawPayload" class="raw-output">等待消息...</pre>
+      </article>
+    </section>
+  </main>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="./dashboard.js"></script>
+</body>
+</html>

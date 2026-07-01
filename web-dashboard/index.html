@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HiSpark 云端生命体征监测</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body data-view="desktop">
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <h1>HiSpark 云端生命体征监测</h1>
+        <p>EMQX 实时遥测 · WS63 服务端 · 床位 bed01</p>
+      </div>
+      <div class="status-strip">
+        <span id="statusPill" class="status-pill offline"><i class="status-dot"></i><span id="statusText">未连接</span></span>
+        <span class="topic-pill">Topic: <span id="topicText">--</span></span>
+      </div>
+    </header>
+
+    <section class="dashboard">
+      <div class="hero-grid">
+        <section class="panel wave-panel">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">心电波形</h2>
+              <p class="panel-subtitle">字段兼容 display_mv / dispplay_mv / disp_mv</p>
+            </div>
+            <div class="ecg-value">
+              <strong id="ecgValue">--</strong>
+              <span>mV 显示值</span>
+            </div>
+          </div>
+          <canvas id="waveCanvas" aria-label="ECG waveform"></canvas>
+          <div class="wave-footer">
+            <span>最新更新时间：<b id="lastUpdateText">--</b></span>
+            <span>设备：<b id="deviceIdText">--</b></span>
+          </div>
+        </section>
+
+        <section class="metrics-grid" aria-label="Vitals">
+          <article class="metric-card">
+            <div class="metric-label"><span>心率</span><span class="metric-icon">HR</span></div>
+            <div class="metric-value"><span id="heartRateValue">--</span><span class="metric-unit">bpm</span></div>
+            <div class="metric-note">来自 heartRate / bpm / hr_bpm</div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label"><span>血氧</span><span class="metric-icon">O2</span></div>
+            <div class="metric-value"><span id="spo2Value">--</span><span class="metric-unit">%</span></div>
+            <div class="metric-note">兼容 spo2 / spo2_x10</div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label"><span>信号质量</span><span class="metric-icon">Q</span></div>
+            <div class="metric-value"><span id="qualityText">--</span></div>
+            <div class="metric-note">来自 quality / state</div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label"><span>消息计数</span><span class="metric-icon">#</span></div>
+            <div class="metric-value"><span id="messageCountText">0</span></div>
+            <div class="metric-note">当前页面收到的遥测条数</div>
+          </article>
+        </section>
+      </div>
+
+      <div class="lower-grid">
+        <section class="panel info-list">
+          <div class="info-row"><span>EMQX 地址</span><span>q67a1139.ala.cn-shenzhen.emqxsl.cn</span></div>
+          <div class="info-row"><span>WebSocket</span><span>wss://地址:8084/mqtt</span></div>
+          <div class="info-row"><span>订阅主题</span><span>hispark/bed01/telemetry</span></div>
+          <div class="info-row"><span>数据来源</span><span>WS63 / MQTTX</span></div>
+        </section>
+        <section class="raw-panel">
+          <h2 class="panel-title">最新原始消息</h2>
+          <pre id="rawPayload" class="raw-output">等待消息...</pre>
+        </section>
+      </div>
+    </section>
+  </main>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="./dashboard.js"></script>
+</body>
+</html>
