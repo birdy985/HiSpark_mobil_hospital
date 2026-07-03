@@ -3,15 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>HiSpark 云端生命体征监测</title>
+  <title>HiSpark 医院生命体征监测</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body data-view="desktop">
   <main class="app-shell">
-    <header class="topbar">
-      <div class="brand">
-        <h1>HiSpark 云端生命体征监测</h1>
-        <p>EMQX 实时遥测 · WS63 服务端 · 床位 bed01</p>
+    <header class="topbar clinical-topbar">
+      <div class="brand clinical-brand">
+        <span class="brand-mark">H</span>
+        <div>
+          <h1>HiSpark 医院生命体征监测</h1>
+          <p>护士站监测 · EMQX 实时遥测 · WS63 服务端 · 床位 bed01</p>
+        </div>
       </div>
       <div class="status-strip">
         <span id="statusPill" class="status-pill offline"><i class="status-dot"></i><span id="statusText">未连接</span></span>
@@ -19,13 +22,55 @@
       </div>
     </header>
 
-    <section class="dashboard">
+    <section class="dashboard clinical-dashboard">
+      <div class="patient-grid">
+        <section class="panel patient-form-panel">
+          <div class="panel-head compact-head">
+            <div>
+              <h2 class="panel-title">患者信息录入</h2>
+              <p class="panel-subtitle">病区登记信息</p>
+            </div>
+            <span class="patient-topic">hispark/bed01/patient</span>
+          </div>
+          <form id="patientForm" class="patient-form">
+            <label class="field-label">病人姓名<input id="patientNameInput" type="text" maxlength="20" autocomplete="off" required></label>
+            <label class="field-label">病历号<input id="patientRecordInput" type="text" maxlength="30" autocomplete="off" required></label>
+            <label class="field-label">性别<select id="patientGenderInput" required><option value="">请选择</option><option>男</option><option>女</option><option>其他</option></select></label>
+            <label class="field-label">年龄<input id="patientAgeInput" type="number" min="0" max="130" inputmode="numeric" required></label>
+            <label class="field-label">联系电话<input id="patientPhoneInput" type="tel" maxlength="24" autocomplete="off"></label>
+            <label class="field-label wide-field">备注<textarea id="patientNoteInput" maxlength="60" rows="2"></textarea></label>
+            <div class="form-actions wide-field">
+              <button type="submit" class="primary-action">上传患者信息</button>
+              <span id="patientStatusText" class="form-status">等待录入</span>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel patient-summary-panel">
+          <div class="panel-head compact-head">
+            <div>
+              <h2 class="panel-title">当前患者</h2>
+              <p class="panel-subtitle">最新同步信息</p>
+            </div>
+            <span class="sync-badge">同步</span>
+          </div>
+          <div class="patient-summary">
+            <div class="patient-primary"><span id="patientNameText">未登记</span><small id="patientRecordText">病历号 --</small></div>
+            <div class="patient-detail-row"><span>性别</span><b id="patientGenderText">--</b></div>
+            <div class="patient-detail-row"><span>年龄</span><b id="patientAgeText">--</b></div>
+            <div class="patient-detail-row"><span>联系电话</span><b id="patientPhoneText">--</b></div>
+            <div class="patient-note"><span>备注</span><b id="patientNoteText">--</b></div>
+            <div class="patient-meta"><span>来源：<b id="patientSourceText">--</b></span><span>更新时间：<b id="patientUpdatedText">--</b></span></div>
+          </div>
+        </section>
+      </div>
+
       <div class="hero-grid">
         <section class="panel wave-panel">
           <div class="panel-head">
             <div>
               <h2 class="panel-title">心电波形</h2>
-              <p class="panel-subtitle">字段兼容 display_mv / dispplay_mv / disp_mv</p>
+              <p class="panel-subtitle">实时监护波形</p>
             </div>
             <div class="ecg-value">
               <strong id="ecgValue">--</strong>
@@ -43,22 +88,22 @@
           <article class="metric-card">
             <div class="metric-label"><span>心率</span><span class="metric-icon">HR</span></div>
             <div class="metric-value"><span id="heartRateValue">--</span><span class="metric-unit">bpm</span></div>
-            <div class="metric-note">来自 heartRate / bpm / hr_bpm</div>
+            <div class="metric-note">连续监测</div>
           </article>
           <article class="metric-card">
             <div class="metric-label"><span>血氧</span><span class="metric-icon">O2</span></div>
             <div class="metric-value"><span id="spo2Value">--</span><span class="metric-unit">%</span></div>
-            <div class="metric-note">兼容 spo2 / spo2_x10</div>
+            <div class="metric-note">脉搏血氧</div>
           </article>
           <article class="metric-card">
             <div class="metric-label"><span>信号质量</span><span class="metric-icon">Q</span></div>
             <div class="metric-value"><span id="qualityText">--</span></div>
-            <div class="metric-note">来自 quality / state</div>
+            <div class="metric-note">采集状态</div>
           </article>
           <article class="metric-card">
             <div class="metric-label"><span>消息计数</span><span class="metric-icon">#</span></div>
             <div class="metric-value"><span id="messageCountText">0</span></div>
-            <div class="metric-note">当前页面收到的遥测条数</div>
+            <div class="metric-note">遥测接收</div>
           </article>
         </section>
       </div>
@@ -67,11 +112,11 @@
         <section class="panel info-list">
           <div class="info-row"><span>EMQX 地址</span><span>q67a1139.ala.cn-shenzhen.emqxsl.cn</span></div>
           <div class="info-row"><span>WebSocket</span><span>wss://地址:8084/mqtt</span></div>
-          <div class="info-row"><span>订阅主题</span><span>hispark/bed01/telemetry</span></div>
-          <div class="info-row"><span>数据来源</span><span>WS63 / MQTTX</span></div>
+          <div class="info-row"><span>遥测主题</span><span>hispark/bed01/telemetry</span></div>
+          <div class="info-row"><span>患者主题</span><span>hispark/bed01/patient</span></div>
         </section>
         <section class="raw-panel">
-          <h2 class="panel-title">最新原始消息</h2>
+          <h2 class="panel-title">最新原始遥测消息</h2>
           <pre id="rawPayload" class="raw-output">等待消息...</pre>
         </section>
       </div>
@@ -81,3 +126,4 @@
   <script src="./dashboard.js"></script>
 </body>
 </html>
+

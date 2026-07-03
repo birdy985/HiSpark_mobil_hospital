@@ -3,20 +3,43 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>生命体征 H5</title>
+  <title>医院生命体征 H5</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body data-view="mobile">
-  <main class="mobile-shell">
-    <header class="mobile-header">
+  <main class="mobile-shell clinical-mobile-shell">
+    <header class="mobile-header clinical-mobile-header">
       <div class="mobile-title">
-        <h1>生命体征 H5</h1>
+        <h1>医院生命体征 H5</h1>
         <p>bed01 · EMQX 实时数据</p>
       </div>
       <span id="statusPill" class="status-pill offline"><i class="status-dot"></i><span id="statusText">未连接</span></span>
     </header>
 
     <section class="mobile-content">
+      <article class="mobile-patient-card">
+        <div class="mobile-card-head">
+          <h2>患者信息</h2>
+          <span id="patientStatusText" class="form-status">等待录入</span>
+        </div>
+        <form id="patientForm" class="patient-form mobile-patient-form">
+          <label class="field-label">病人姓名<input id="patientNameInput" type="text" maxlength="20" autocomplete="off" required></label>
+          <label class="field-label">病历号<input id="patientRecordInput" type="text" maxlength="30" autocomplete="off" required></label>
+          <label class="field-label">性别<select id="patientGenderInput" required><option value="">请选择</option><option>男</option><option>女</option><option>其他</option></select></label>
+          <label class="field-label">年龄<input id="patientAgeInput" type="number" min="0" max="130" inputmode="numeric" required></label>
+          <label class="field-label">联系电话<input id="patientPhoneInput" type="tel" maxlength="24" autocomplete="off"></label>
+          <label class="field-label">备注<textarea id="patientNoteInput" maxlength="60" rows="2"></textarea></label>
+          <button type="submit" class="primary-action">上传患者信息</button>
+        </form>
+        <div class="mobile-patient-summary">
+          <strong id="patientNameText">未登记</strong>
+          <span id="patientRecordText">病历号 --</span>
+          <div><span id="patientGenderText">--</span><span id="patientAgeText">--</span><span id="patientPhoneText">--</span></div>
+          <p id="patientNoteText">--</p>
+          <small>来源 <b id="patientSourceText">--</b> · <b id="patientUpdatedText">--</b></small>
+        </div>
+      </article>
+
       <article class="mobile-wave-card">
         <div class="mobile-wave-top">
           <h2>心电</h2>
@@ -42,7 +65,7 @@
       </article>
 
       <article class="mobile-raw-card">
-        <h2>原始消息</h2>
+        <h2>遥测消息</h2>
         <div class="mobile-meta">
           <div><small>Topic</small><b id="topicText">--</b></div>
           <div><small>计数</small><b id="messageCountText">0</b></div>
@@ -55,3 +78,4 @@
   <script src="./dashboard.js"></script>
 </body>
 </html>
+

@@ -5,7 +5,8 @@
     path: "/mqtt",
     username: "CHANGE_ME",
     password: "CHANGE_ME",
-    topic: "hispark/bed01/telemetry",
+    telemetryTopic: "hispark/bed01/telemetry",
+    patientTopic: "hispark/bed01/patient",
     clientPrefix: "hispark_dashboard_"
   };
 
@@ -19,6 +20,7 @@
     connected: false,
     lastPayload: null,
     lastMessageAt: null,
+    patientSeq: 0,
     wave: [],
     maxWavePoints: 180
   };
@@ -33,7 +35,11 @@
     [
       "statusPill", "statusText", "topicText", "ecgValue", "heartRateValue", "spo2Value",
       "lastUpdateText", "deviceIdText", "messageCountText", "qualityText", "rawPayload",
-      "waveCanvas", "mobileWaveCanvas"
+      "waveCanvas", "mobileWaveCanvas", "patientForm", "patientNameInput", "patientRecordInput",
+      "patientGenderInput", "patientAgeInput", "patientPhoneInput", "patientNoteInput",
+      "patientStatusText", "patientNameText", "patientRecordText", "patientGenderText",
+      "patientAgeText", "patientPhoneText", "patientNoteText", "patientSourceText",
+      "patientUpdatedText"
     ].forEach((id) => {
       elements[id] = byId(id);
     });
@@ -48,6 +54,10 @@
       elements.statusPill.classList.add(status);
     }
     elements.statusText.textContent = text;
+  }
+
+  function setPatientStatus(text) {
+    updateText(elements.patientStatusText, text);
   }
 
   function mqttUrl() {
@@ -91,6 +101,15 @@
     }
   }
 
+  function cleanText(value, maxLen) {
+    return String(value || "")
+      .replace(/[\u0000-\u001f\u007f]/g, " ")
+      .replace(/["\\]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, maxLen);
+  }
+
   function pushWave(value) {
     const num = safeNumber(value);
     if (num === null) {
@@ -119,7 +138,7 @@
 
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = "#101828";
+    ctx.fillStyle = "#10202f";
     ctx.fillRect(0, 0, width, height);
 
     ctx.strokeStyle = "rgba(255,255,255,0.08)";
@@ -182,29 +201,145 @@
     pushWave(telemetry.displayMv);
   }
 
+  function readPatientForm() {
+    return {
+      name: cleanText(elements.patientNameInput?.value, 20),
+      recordNo: cleanText(elements.patientRecordInput?.value, 30),
+      gender: cleanText(elements.patientGenderInput?.value, 8),
+      age: safeNumber(elements.patientAgeInput?.value),
+      phone: cleanText(elements.patientPhoneInput?.value, 24),
+      note: cleanText(elements.patientNoteInput?.value, 60)
+    };
+  }
+
+  function validatePatient(patient) {
+    if (!patient.name) {
+      return "请填写病人姓名";
+    }
+    if (!patient.recordNo) {
+      return "请填写病历号";
+    }
+    if (!["男", "女", "其他"].includes(patient.gender)) {
+      return "请选择性别";
+    }
+    if (patient.age === null || patient.age < 0 || patient.age > 130) {
+      return "请填写有效年龄";
+    }
+    if (patient.phone && !/^[0-9+\-()\s]{3,24}$/.test(patient.phone)) {
+      return "联系电话格式不正确";
+    }
+    return null;
+  }
+
+  function updatePatientView(payload) {
+    const patient = payload.patient || {};
+    const age = safeNumber(patient.age);
+    const updatedAt = payload.ts ? new Date(Number(payload.ts)) : new Date();
+
+    updateText(elements.patientNameText, patient.name || "未登记");
+    updateText(elements.patientRecordText, patient.recordNo ? `病历号 ${patient.recordNo}` : "病历号 --");
+    updateText(elements.patientGenderText, patient.gender || "--");
+    updateText(elements.patientAgeText, age === null ? "--" : `${Math.round(age)} 岁`);
+    updateText(elements.patientPhoneText, patient.phone || "--");
+    updateText(elements.patientNoteText, patient.note || "--");
+    updateText(elements.patientSourceText, payload.source || "--");
+    updateText(elements.patientUpdatedText, updatedAt.toLocaleString());
+    setPatientStatus("已同步最新患者信息");
+  }
+
+  function handlePatientInfo(payload) {
+    if (!payload || payload.type !== "patientInfo" || !payload.patient) {
+      return;
+    }
+    updatePatientView(payload);
+  }
+
+  function publishPatientInfo(event) {
+    event.preventDefault();
+    const patient = readPatientForm();
+    const error = validatePatient(patient);
+    if (error) {
+      setPatientStatus(error);
+      return;
+    }
+    if (!state.connected || !state.client) {
+      setPatientStatus("MQTT 未连接，无法上传");
+      return;
+    }
+
+    const payload = {
+      type: "patientInfo",
+      deviceId: "bed01",
+      source: isMobilePage ? "mobile" : "pc",
+      seq: ++state.patientSeq,
+      ts: Date.now(),
+      patient: {
+        name: patient.name,
+        recordNo: patient.recordNo,
+        gender: patient.gender,
+        age: Math.round(patient.age),
+        phone: patient.phone,
+        note: patient.note
+      }
+    };
+
+    state.client.publish(config.patientTopic, JSON.stringify(payload), { qos: 0, retain: false }, (publishError) => {
+      if (publishError) {
+        setPatientStatus(publishError.message || "患者信息上传失败");
+        return;
+      }
+      setPatientStatus("已上传，等待同步回显");
+    });
+  }
+
+  function bindPatientForm() {
+    if (elements.patientForm) {
+      elements.patientForm.addEventListener("submit", publishPatientInfo);
+    }
+  }
+
   function handleMessage(topic, message) {
     const rawText = new TextDecoder("utf-8").decode(message);
     try {
       const payload = JSON.parse(rawText);
+      if (topic === config.patientTopic) {
+        handlePatientInfo(payload);
+        return;
+      }
       updateDashboard(payload, rawText);
     } catch (error) {
-      updateText(elements.rawPayload, rawText);
+      if (topic === config.telemetryTopic) {
+        updateText(elements.rawPayload, rawText);
+      }
       setStatus("error", "消息不是 JSON");
     }
+  }
+
+  function subscribeTopics(client) {
+    client.subscribe([config.telemetryTopic, config.patientTopic], { qos: 0 }, (error) => {
+      if (error) {
+        setStatus("error", "订阅失败");
+        updateText(elements.rawPayload, error.message || String(error));
+        return;
+      }
+      setPatientStatus("已订阅患者信息");
+    });
   }
 
   function connect() {
     if (config.username === "CHANGE_ME" || config.password === "CHANGE_ME") {
       setStatus("error", "请配置 MQTT 账号");
+      setPatientStatus("请配置 MQTT 账号");
       updateText(elements.rawPayload, "在 dashboard.js 顶部配置账号，或使用 ?user=账号&pass=密码 打开页面。");
       return;
     }
     if (!window.mqtt) {
       setStatus("error", "MQTT.js 未加载");
+      setPatientStatus("MQTT.js 未加载");
       return;
     }
     setStatus(null, "连接中");
-    updateText(elements.topicText, config.topic);
+    updateText(elements.topicText, `${config.telemetryTopic} / ${config.patientTopic}`);
 
     const clientId = `${config.clientPrefix}${isMobilePage ? "mobile" : "pc"}_${Math.random().toString(16).slice(2, 8)}`;
     const client = window.mqtt.connect(mqttUrl(), {
@@ -222,12 +357,7 @@
     client.on("connect", () => {
       state.connected = true;
       setStatus("connected", "已连接");
-      client.subscribe(config.topic, { qos: 0 }, (error) => {
-        if (error) {
-          setStatus("error", "订阅失败");
-          updateText(elements.rawPayload, error.message || String(error));
-        }
-      });
+      subscribeTopics(client);
     });
 
     client.on("reconnect", () => setStatus(null, "重连中"));
@@ -237,6 +367,7 @@
     });
     client.on("error", (error) => {
       setStatus("error", "连接错误");
+      setPatientStatus("连接错误");
       updateText(elements.rawPayload, error.message || String(error));
     });
     client.on("message", handleMessage);
@@ -249,7 +380,8 @@
 
   window.addEventListener("DOMContentLoaded", () => {
     bindElements();
-    updateText(elements.topicText, config.topic);
+    bindPatientForm();
+    updateText(elements.topicText, `${config.telemetryTopic} / ${config.patientTopic}`);
     drawWave(elements.waveCanvas);
     drawWave(elements.mobileWaveCanvas);
     connect();
