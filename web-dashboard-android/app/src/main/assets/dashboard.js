@@ -180,7 +180,7 @@
     if (!patient.recordNo) {
       return "请填写病历号";
     }
-    if (!["male", "female"].includes(patient.gender)) {
+    if (!["男", "女", "其他"].includes(patient.gender)) {
       return "请选择性别";
     }
     if (patient.age === null || patient.age < 0 || patient.age > 130) {

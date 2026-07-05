@@ -1,2 +1,0 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
-{"path":"fbb_ws63/src/application/samples/mydemo/9_ad8232_adc","reason":"Final validation: AD8232 sample object files compile with SDK Ninja output; user confirmed board UART receives printf lines containing ADC millivolt samples from the AD8232 wiring on HH-D02 J6-7/GPIO_09/ADC2."}

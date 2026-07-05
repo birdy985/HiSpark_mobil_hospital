@@ -13,13 +13,10 @@
         <span class="brand-mark">H</span>
         <div>
           <h1>HiSpark 医院生命体征监测</h1>
-          <p>护士站监测 · EMQX 实时遥测 · WS63 服务端 · 床位 bed01</p>
+          <p>床位 bed01 生命体征看板</p>
         </div>
       </div>
-      <div class="status-strip">
-        <span id="statusPill" class="status-pill offline"><i class="status-dot"></i><span id="statusText">未连接</span></span>
-        <span class="topic-pill">Topic: <span id="topicText">--</span></span>
-      </div>
+      <span id="statusPill" class="status-pill offline"><i class="status-dot"></i><span id="statusText">未连接</span></span>
     </header>
 
     <section class="dashboard clinical-dashboard">
@@ -30,7 +27,7 @@
               <h2 class="panel-title">患者信息录入</h2>
               <p class="panel-subtitle">病区登记信息</p>
             </div>
-            <span class="patient-topic">hispark/bed01/patient</span>
+            <span id="patientStatusText" class="form-status">等待录入</span>
           </div>
           <form id="patientForm" class="patient-form">
             <label class="field-label">病人姓名<input id="patientNameInput" type="text" maxlength="20" autocomplete="off" required></label>
@@ -41,7 +38,6 @@
             <label class="field-label wide-field">备注<textarea id="patientNoteInput" maxlength="60" rows="2"></textarea></label>
             <div class="form-actions wide-field">
               <button type="submit" class="primary-action">上传患者信息</button>
-              <span id="patientStatusText" class="form-status">等待录入</span>
             </div>
           </form>
         </section>
@@ -65,65 +61,54 @@
         </section>
       </div>
 
-      <div class="hero-grid">
-        <section class="panel wave-panel">
-          <div class="panel-head">
-            <div>
-              <h2 class="panel-title">心电波形</h2>
-              <p class="panel-subtitle">实时监护波形</p>
-            </div>
-            <div class="ecg-value">
-              <strong id="ecgValue">--</strong>
-              <span>mV 显示值</span>
-            </div>
+      <section class="panel vitals-panel">
+        <div class="panel-head vitals-head">
+          <div>
+            <h2 class="panel-title">检测数据</h2>
+            <p class="panel-subtitle">服务端云端遥测</p>
           </div>
-          <canvas id="waveCanvas" aria-label="ECG waveform"></canvas>
-          <div class="wave-footer">
-            <span>最新更新时间：<b id="lastUpdateText">--</b></span>
-            <span>设备：<b id="deviceIdText">--</b></span>
+          <div class="telemetry-meta">
+            <span>设备 <b id="deviceIdText">--</b></span>
+            <span>更新 <b id="lastUpdateText">--</b></span>
           </div>
-        </section>
+        </div>
 
-        <section class="metrics-grid" aria-label="Vitals">
-          <article class="metric-card">
+        <section class="metrics-grid" aria-label="生命体征检测数据">
+          <article class="metric-card heart-card">
             <div class="metric-label"><span>心率</span><span class="metric-icon">HR</span></div>
             <div class="metric-value"><span id="heartRateValue">--</span><span class="metric-unit">bpm</span></div>
-            <div class="metric-note">连续监测</div>
+            <div class="metric-note">实时心率</div>
           </article>
-          <article class="metric-card">
+          <article class="metric-card oxygen-card">
             <div class="metric-label"><span>血氧</span><span class="metric-icon">O2</span></div>
             <div class="metric-value"><span id="spo2Value">--</span><span class="metric-unit">%</span></div>
             <div class="metric-note">脉搏血氧</div>
           </article>
-          <article class="metric-card">
-            <div class="metric-label"><span>信号质量</span><span class="metric-icon">Q</span></div>
-            <div class="metric-value"><span id="qualityText">--</span></div>
-            <div class="metric-note">采集状态</div>
+          <article class="metric-card micro-card">
+            <div class="metric-label"><span>微循环</span><span class="metric-icon">MC</span></div>
+            <div class="metric-value"><span id="microcirculationValue">--</span></div>
+            <div class="metric-note">灌注指标</div>
           </article>
-          <article class="metric-card">
+          <article class="metric-card pressure-card">
+            <div class="metric-label"><span>收缩压</span><span class="metric-icon">SYS</span></div>
+            <div class="metric-value"><span id="systolicBpValue">--</span><span class="metric-unit">mmHg</span></div>
+            <div class="metric-note">高压</div>
+          </article>
+          <article class="metric-card pressure-card">
+            <div class="metric-label"><span>舒张压</span><span class="metric-icon">DIA</span></div>
+            <div class="metric-value"><span id="diastolicBpValue">--</span><span class="metric-unit">mmHg</span></div>
+            <div class="metric-note">低压</div>
+          </article>
+          <article class="metric-card count-card">
             <div class="metric-label"><span>消息计数</span><span class="metric-icon">#</span></div>
             <div class="metric-value"><span id="messageCountText">0</span></div>
             <div class="metric-note">遥测接收</div>
           </article>
         </section>
-      </div>
-
-      <div class="lower-grid">
-        <section class="panel info-list">
-          <div class="info-row"><span>EMQX 地址</span><span>q67a1139.ala.cn-shenzhen.emqxsl.cn</span></div>
-          <div class="info-row"><span>WebSocket</span><span>wss://地址:8084/mqtt</span></div>
-          <div class="info-row"><span>遥测主题</span><span>hispark/bed01/telemetry</span></div>
-          <div class="info-row"><span>患者主题</span><span>hispark/bed01/patient</span></div>
-        </section>
-        <section class="raw-panel">
-          <h2 class="panel-title">最新原始遥测消息</h2>
-          <pre id="rawPayload" class="raw-output">等待消息...</pre>
-        </section>
-      </div>
+      </section>
     </section>
   </main>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <script src="./dashboard.js"></script>
 </body>
 </html>
-
